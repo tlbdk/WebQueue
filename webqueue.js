@@ -38,23 +38,40 @@ var server = http.createServer(function (req, res) {
         }
     
     } else if (req.method == 'POST') {
+        req.setEncoding('utf8');
+        req.body = '';
         console.log("Got POST from " + req.socket.remoteAddress);
         req.addListener('data', function(chunk) {
-            console.log("added data:" + chunk);
-            queue.push(chunk); //TODO add to body and to queue in end 
+            this.body += chunk;
         });
         req.addListener('end', function() {
-            while(client = waiting.shift()) {
-                var client_id = client[0]; 
-                var client_res = client[1]; 
-                var last_i = clients[client_id];
-                client_res.write("[" + queue.splice(last_i).join(",") + "]\n");
-                client_res.end();
-                clients[client_id]++;
+            console.log("got body:" + this.body);
+            try {
+                items = JSON.parse('"' + this.body + '"');
+                queue = queue.concat(items);
+                // BUG HERE
+                console.log(items);
+                console.log(queue);
+                while(client = waiting.shift()) {
+                    var client_id = client[0]; 
+                    var client_res = client[1]; 
+                    var last_i = clients[client_id];
+                    if(last_i < queue.length) {
+                        client_res.write("[" + queue.splice(last_i).join(",") + "]\n");
+                        client_res.end();
+                        clients[client_id] = queue.length;
+                    }
+                }
+                res.writeHead('200', { "Content-Type": "text/javascript" });
+                res.end("{status:'ok'}\n");          
+
+            } catch(ex) {
+                items = JSON.parse(JSON.stringify([{'status': 3}]));
+                console.log(ex.message);
+                res.writeHead('400', { "Content-Type": "text/javascript" });
+                res.end("{status:'not ok'}\n");          
             }
         });
-        res.writeHead('200', { "Content-Type": "text/javascript" });
-        res.end("{status:'ok'}\n");          
     
     } else {
         res.writeHead('404', { "Content-Type": "text/javascript" });

@@ -1,6 +1,7 @@
-var http = require("http");
-var fs = require("fs");
-var url = require('url'),
+var http = require("http"),
+    fs = require("fs"),
+    url = require('url'),
+    util = require('util');
 
 server_port = 8080
 
@@ -15,9 +16,8 @@ var waiting = {
 };
 
 var server = http.createServer(function (req, res) {    
-   
     // Handle all queue work
-    if(req.url.match(/^queue/)) {
+    if(req.url.match(/^\/queue/)) {
         var commands = req.url.split('/');
         var queue_name = commands[2];
         var client_id = commands[3];
@@ -26,7 +26,7 @@ var server = http.createServer(function (req, res) {
             res.writeHead(404, { "Content-Type": "text/javascript" });
             res.end();
 
-        } else if(req.method == 'GET') {
+        } else if(client_id) {
             console.log("Got GET from " + req.socket.remoteAddress);
             res.writeHead(200, { "Content-Type": "text/javascript" });
 
@@ -100,7 +100,7 @@ var server = http.createServer(function (req, res) {
        
         if(filepath.match(/\.css$/)) {
             mimetype = "text/css";
-        } else if(filepath.match(/\.css$/)) {
+        } else if(filepath.match(/\.js$/)) {
             mimetype = "text/javascript";
         } else if(filepath.match(/\.html$/)) {
             mimetype = "text/html";
@@ -115,13 +115,9 @@ var server = http.createServer(function (req, res) {
                 res.end();
             } else {
                 console.log("Get " + req.url + " : " + filepath + " : " + mimetype);
-                fs.open(filepath, 'r', 0666, function(err, fd) {
-                    res.writeHead(200, {'Content-Type': mimetype, 'Content-Length': stats.size});
-                    fs.sendfile(req.socket.fd, fd, 0, stats.size, function() {
-                        console.log("Sent: " + req.url + " : " + " : " + stats.size);
-                        res.end();
-                    }); 
-                });
+                res.writeHead(200, { "Content-Type": mimetype });
+                var rs = fs.createReadStream(filepath);
+                util.pump(rs, res);
             }
         });
     }

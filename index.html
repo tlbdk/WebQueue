@@ -2,23 +2,25 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"> 
   <head> 
     <meta http-equiv="content-type" content="text/html; charset=utf-8" /> 
-    <title>Simple Job History editor</title> 
+    <title>WebQueue test page</title> 
     <link rel="stylesheet" href="css/main.css" type="text/css" /> 
     <script type="text/javascript" src="js/jquery-1.4.4.min.js"></script> 
     <script type="text/javascript">
       $(document).ready(function(){
-          $.getJSON( "contrib/tags.js", function( data ) {
-            
-          });
+          var getStatus = function() {
+          $.post("/queue/test/1", "", function(data, textStatus) {
+              for(var i = 0; i < data.length; i++) {
+                $('.results').append('<p>' + data[i].status + '</p>');
+              }
+              getStatus();
+            }, "json");
+          };
+          getStatus();
       });
     </script>
   </head> 
   <body>
-    <form action="#" method="post">
-      <p>
-        <label for="tag">Tags</label>
-        <input type="text" name="tag" id="tag" value="" />
-      </p>
-    </form> 
+    <div class="results">
+    </div>
   </body>
 </html>
